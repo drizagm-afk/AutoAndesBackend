@@ -13,14 +13,14 @@ $env:DB_PASSWORD = '<local Oracle password>'
 Defaults: `localhost:1522/FREEPDB1`, user `autoandesdb`, HTTP port `8080`.
 Optional overrides: `DB_URL`, `DB_USERNAME`. Never commit local credentials.
 
-## Phase 1 status
+## Current status: Questions 1 and 2
 
 Services/vehicles CRUD and read-only customer lookup are implemented with DTOs,
 validation, common errors, mutation/rejection logs and RN-01/RN-02 in the service layer.
 Controllers never call repositories. Vehicle responses include `clienteId` and
 `clienteNombre`, not a nested entity. The customer relationship is lazy.
 
-Current CRUD routes are public for Question 1 evaluation. JWT and permission
+Current business routes are public for Question 1/2 evaluation. JWT and permission
 enforcement are added in Question 3; this is not the final security configuration.
 
 Swagger UI: <http://localhost:8080/swagger-ui.html>
@@ -36,6 +36,7 @@ applied. Fresh empty schemas run both migrations automatically.
 V3 supplies the user/role tables omitted by the annex, using the fields from
 section 3.1. Their JPA entities are included; account seeds and authentication
 remain scheduled for Question 3. Fresh schemas apply V1, V2 and V3.
+V4 adds the order-number sequence; a fresh schema applies all four migrations.
 
 `baseline-on-migrate` stays false. Do not baseline an unknown schema or edit applied
 migrations. Hibernate DDL changes are disabled. Future changes use new migrations.
@@ -83,11 +84,60 @@ generic 500 and are logged on the server.
 Required application users are seeded with BCrypt in Question 3: admin, asesor,
 jefe, inactivo; test password `Auto2026*`, separate from Oracle credentials.
 
+## Orders and reports (Question 2)
+
+| Method | Route | Success |
+| --- | --- | --- |
+| POST | `/ordenes` | 201 with Location and complete order |
+| GET | `/ordenes?placa&estado&desde&hasta` | 200 array |
+| GET | `/ordenes/{id}` | 200 complete order |
+| PATCH | `/ordenes/{id}/anular` | 200 canceled order |
+| GET | `/reportes/ingresos-por-servicio?desde&hasta` | 200 aggregated array |
+
+Order body (use actual vehicle/service IDs):
+
+```json
+{"vehiculoId":8,"kilometraje":50000,"detalles":[{"servicioId":1,"cantidad":2}]}
+```
+
+Unit price comes from Oracle. The service calculates subtotal and total using
+BigDecimal; any client-supplied total is ignored. An order starts REGISTRADA.
+Header and details are inserted inside one service transaction; a later inactive
+or missing service rolls the entire transaction back. Detail count: 1–10; quantities:
+1–5; services cannot repeat. Kilometraje is a nonnegative integer of up to 7 digits
+and cannot be below the latest REGISTRADA order's value for the same vehicle.
+A vehicle write lock serializes concurrent registrations for the mileage check.
+
+V4 adds an Oracle sequence starting after the four seed order numbers. The format
+is OS-000001. Numbers are unique and increasing; rollbacks can leave sequence gaps.
+No number is reused and order IDs are independent of order numbers.
+
+Cancellation body: `{"motivo":"Cancelación solicitada por el cliente"}`.
+Only REGISTRADA orders from the same Lima calendar day can be canceled. Reasons
+must contain 10–200 characters; padding spaces do not satisfy the minimum length.
+Cancellation preserves detail rows and amounts for auditability.
+
+Order filters are optional and combinable. Plate search is a case-insensitive
+literal substring; estado is REGISTRADA or ANULADA. Dates use YYYY-MM-DD, including
+the entire hasta day through an exclusive next-day boundary. Invalid ranges return
+400. Results sort by fecha descending, then ID descending; empty results are `[]`.
+
+The report uses a JPQL constructor projection and GROUP BY, entirely aggregated in
+the database. Fields: codigo, servicio, cantidadTotal, importeTotal. Only REGISTRADA
+orders count. Amounts sort descending, then service code. Date semantics match the
+order filters, and omitted date limits are unbounded.
+
+CORS allows only http://localhost:4200 for the API, methods GET/POST/PUT/PATCH/DELETE/
+OPTIONS and Authorization/Content-Type/Accept headers. Location is exposed.
+During Question 2, usuarioRegistro defaults to asesor for anonymous evaluation;
+Question 3 replaces that fallback with the verified JWT principal.
+
 ## Verification
 
-Run `.\mvnw.cmd test` with Java 25. Four HTTP integration tests use isolated H2,
+Run `.\mvnw.cmd test` with Java 25. Integration tests use isolated H2,
 never the Oracle schema. They cover lifecycle operations, duplicate updates,
 validation/error shapes, customer mapping/filtering and referenced deletion rules.
 
-The Postman collection was also executed with Newman against Oracle: 29 requests,
-65 assertions, no failures. See `docs/phase1-validation.md` and `postman/README.md`.
+The Postman collection is also executed with Newman against Oracle. See
+`docs/phase1-validation.md`, `docs/phase2-validation.md` and `postman/README.md`.
+SQL Developer evidence queries are in `docs/phase2-oracle-verification.sql`.

@@ -20,11 +20,11 @@ public class GlobalExceptionHandler {
     ResponseEntity<ErrorResponseDTO> validation(MethodArgumentNotValidException ex, HttpServletRequest r) {
         Map<String,String> campos = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(e -> campos.putIfAbsent(e.getField(), e.getDefaultMessage()));
-        return error(HttpStatus.BAD_REQUEST, "Datos inválidos", r, campos);
+        return error(HttpStatus.BAD_REQUEST, "Datos invÃ¡lidos", r, campos);
     }
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     ResponseEntity<ErrorResponseDTO> invalid(Exception ex, HttpServletRequest r) {
-        return error(HttpStatus.BAD_REQUEST, "Solicitud inválida: revise el JSON y los tipos de datos", r, null);
+        return error(HttpStatus.BAD_REQUEST, "Solicitud invÃ¡lida: revise el JSON y los tipos de datos", r, null);
     }
     @ExceptionHandler(RecursoNoEncontradoException.class)
     ResponseEntity<ErrorResponseDTO> missing(RecursoNoEncontradoException ex, HttpServletRequest r) {
@@ -35,6 +35,11 @@ public class GlobalExceptionHandler {
     ResponseEntity<ErrorResponseDTO> missingRoute(NoResourceFoundException ex, HttpServletRequest r) {
         return error(HttpStatus.NOT_FOUND, "Ruta no encontrada", r, null);
     }
+    @ExceptionHandler(DatosInvalidosException.class)
+    ResponseEntity<ErrorResponseDTO> invalidBusiness(DatosInvalidosException ex, HttpServletRequest r) {
+        log.warn("Regla rechazada en {}: {}", r.getRequestURI(), ex.getMessage());
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage(), r, null);
+    }
     @ExceptionHandler(ReglaNegocioException.class)
     ResponseEntity<ErrorResponseDTO> conflict(ReglaNegocioException ex, HttpServletRequest r) {
         log.warn("Regla rechazada en {}: {}", r.getRequestURI(), ex.getMessage());
@@ -43,16 +48,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<ErrorResponseDTO> integrity(DataIntegrityViolationException ex, HttpServletRequest r) {
         log.warn("Conflicto de integridad en {}", r.getRequestURI());
-        return error(HttpStatus.CONFLICT, "La operación entra en conflicto con un registro existente o relacionado", r, null);
+        return error(HttpStatus.CONFLICT, "La operaciÃ³n entra en conflicto con un registro existente o relacionado", r, null);
     }
     @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
     ResponseEntity<ErrorResponseDTO> method(Exception ex, HttpServletRequest r) {
-        return error(HttpStatus.METHOD_NOT_ALLOWED, "Método no permitido", r, null);
+        return error(HttpStatus.METHOD_NOT_ALLOWED, "MÃ©todo no permitido", r, null);
     }
     @ExceptionHandler(Exception.class)
     ResponseEntity<ErrorResponseDTO> unexpected(Exception ex, HttpServletRequest r) {
         log.error("Error inesperado en {}", r.getRequestURI(), ex);
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error inesperado", r, null);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "OcurriÃ³ un error inesperado", r, null);
     }
     private ResponseEntity<ErrorResponseDTO> error(HttpStatus status, String mensaje, HttpServletRequest r, Map<String,String> campos) {
         return ResponseEntity.status(status).body(new ErrorResponseDTO(LocalDateTime.now(), status.value(), status.getReasonPhrase(), mensaje, r.getRequestURI(), campos));

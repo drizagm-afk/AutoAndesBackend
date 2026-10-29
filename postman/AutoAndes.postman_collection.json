@@ -2,7 +2,7 @@
   "info": {
     "name": "AutoAndes API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Question 1: Oracle-backed service and vehicle CRUD, validation, relationship and conflict checks. Run folders 02, 03, 04 in order. Authentication is added in Question 3."
+    "description": "Questions 1–2. Run the full collection in saved order. Order tests intentionally retain one canceled order per run for auditability. JWT and permission tests follow in Question 3."
   },
   "item": [
     {
@@ -818,11 +818,775 @@
     },
     {
       "name": "05 - Ordenes",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Preparar servicios de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.environment.set(\"servicioAceiteId\",rows.find(s=>s.codigo===\"SRV-001\").id);",
+                  "pm.environment.set(\"servicioAlineamientoId\",rows.find(s=>s.codigo===\"SRV-002\").id);",
+                  "pm.environment.set(\"servicioInactivoId\",rows.find(s=>s.codigo===\"SRV-008\").id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Preparar vehículos de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.environment.set(\"vehiculoOrdenId\",rows.find(v=>v.placa===\"HHH-888\").id);",
+                  "pm.environment.set(\"vehiculoKilometrajeId\",rows.find(v=>v.placa===\"AAA-111\").id);",
+                "pm.environment.set(\"hoy\",new Date(Date.now()-5*60*60*1000).toISOString().substring(0,10));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar semilla y guardar conteo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json(); pm.environment.set(\"ordenCount\",rows.length);",
+                  "pm.environment.set(\"detallesCount\",rows.reduce((n,o)=>n+o.detalles.length,0));",
+                  "pm.environment.set(\"ordenAntiguaId\",rows.find(o=>o.numero===\"OS-000001\").id);",
+                  "pm.environment.set(\"ordenAnuladaId\",rows.find(o=>o.numero===\"OS-000004\").id);",
+                  "pm.test(\"Semilla y orden por fecha\",()=>{pm.expect(rows.length).to.be.at.least(4);for(let i=1;i<rows.length;i++)pm.expect(rows[i-1].fecha>=rows[i].fecha).to.eql(true);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Rechazar tercer detalle inactivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioInactivoId}}\",\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Confirmar rollback por API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.test(\"Sin cabecera parcial\",()=>pm.expect(rows.length).to.eql(Number(pm.environment.get(\"ordenCount\"))));",
+                  "pm.test(\"Sin detalles parciales\",()=>pm.expect(rows.reduce((n,o)=>n+o.detalles.length,0)).to.eql(Number(pm.environment.get(\"detallesCount\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Rechazar kilometraje inferior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoKilometrajeId}}\",\n  \"kilometraje\": 44999,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test(\"Mensaje con último kilometraje\",()=>pm.expect(pm.response.json().mensaje).to.include(\"45000\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Rechazar servicio repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Rechazar orden sin detalles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test(\"Error de campo\",()=>pm.expect(pm.response.json().campos).to.have.property(\"detalles\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Rechazar cantidad mayor que cinco",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 6\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test(\"Error en línea de detalle\",()=>pm.expect(pm.response.json().campos).to.have.property(\"detalles[0].cantidad\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Rechazar vehículo inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": 999999999,\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Rechazar servicio inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": 999999999,\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Registrar orden con cálculos del backend",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    }\n  ],\n  \"total\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const o=pm.response.json();pm.environment.set(\"ordenId\",o.id);pm.environment.set(\"ordenNumero\",o.numero);",
+                  "pm.test(\"Orden completa y precios reales\",()=>{pm.expect(o.estado).to.eql(\"REGISTRADA\");pm.expect(o.numero).to.match(/^OS-\\d{6}$/);pm.expect(o.total).to.eql(280);pm.expect(o.detalles.length).to.eql(2);pm.expect(o.detalles[0].precioUnitario).to.eql(80);pm.expect(o.detalles[0].subtotal).to.eql(160);});",
+                  "pm.test(\"Location\",()=>pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/ordenes/\"+o.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Consultar detalle de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Detalle persistido\",()=>{const o=pm.response.json();pm.expect(o.total).to.eql(280);pm.expect(o.detalles.length).to.eql(2);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Combinar placa estado y fechas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?placa=hhh&estado=REGISTRADA&desde={{hoy}}&hasta={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Filtros combinados\",()=>{const rows=pm.response.json();pm.expect(rows.some(o=>o.id===Number(pm.environment.get(\"ordenId\")))).to.eql(true);rows.forEach(o=>{pm.expect(o.placa).to.eql(\"HHH-888\");pm.expect(o.estado).to.eql(\"REGISTRADA\");pm.expect(o.fecha.substring(0,10)).to.eql(pm.environment.get(\"hoy\"));});});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 - Consulta sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?placa=NO-MATCH"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\",()=>pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 - Orden inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 - Rechazar motivo corto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Corto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 - Rechazar anulación fuera del día",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenAntiguaId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Anulación solicitada fuera de plazo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 - Rechazar anulación de orden anulada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenAnuladaId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Intento de anulación repetida\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 - Reporte previo a anular",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde={{hoy}}&hasta={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"reporteAntes\",JSON.stringify(pm.response.json()));",
+                  "pm.test(\"Orden incluida en reporte\",()=>{const rows=pm.response.json();pm.expect(rows.find(r=>r.codigo===\"SRV-001\").importeTotal).to.be.at.least(160);pm.expect(rows.find(r=>r.codigo===\"SRV-002\").importeTotal).to.be.at.least(120);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21 - Anular orden del día",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cancelación solicitada por el cliente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Anulada con detalle conservado\",()=>{const o=pm.response.json();pm.expect(o.estado).to.eql(\"ANULADA\");pm.expect(o.detalles.length).to.eql(2);pm.expect(o.motivoAnulacion).to.eql(\"Cancelación solicitada por el cliente\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 - Reporte excluye lo anulado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde={{hoy}}&hasta={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const before=JSON.parse(pm.environment.get(\"reporteAntes\"));const after=pm.response.json();",
+                  "pm.test(\"Ingresos descontados\",()=>{[ [\"SRV-001\",160,2],[\"SRV-002\",120,2] ].forEach(([code,amount,qty])=>{const b=before.find(r=>r.codigo===code);const a=after.find(r=>r.codigo===code);pm.expect(b.importeTotal-(a?a.importeTotal:0)).to.eql(amount);pm.expect(b.cantidadTotal-(a?a.cantidadTotal:0)).to.eql(qty);});});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 - No se anula dos veces",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Segundo intento de cancelación\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 - Rango de fechas inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?desde=2026-12-31&hasta=2026-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25 - Estado inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?estado=INVALIDO"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "06 - Reportes",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Reporte agregado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.test(\"Proyección y orden descendente\",()=>{rows.forEach(r=>[\"codigo\",\"servicio\",\"cantidadTotal\",\"importeTotal\"].forEach(k=>pm.expect(r).to.have.property(k)));for(let i=1;i<rows.length;i++)pm.expect(rows[i-1].importeTotal).to.be.at.least(rows[i].importeTotal);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Reporte sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde=1990-01-01&hasta=1990-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\",()=>pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Rango inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde=2026-12-31&hasta=2026-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "07 - Errores y permisos",
