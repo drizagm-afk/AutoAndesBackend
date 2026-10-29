@@ -1,4 +1,4 @@
-package pe.edu.upeu.autoandes.dto;
+package pe.edu.upeu.autoandes.exception.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

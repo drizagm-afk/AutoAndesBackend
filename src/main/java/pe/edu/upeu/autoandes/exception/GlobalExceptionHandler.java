@@ -12,7 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import pe.edu.upeu.autoandes.dto.ErrorResponseDTO;
+import pe.edu.upeu.autoandes.exception.dto.ErrorResponseDTO;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -152,10 +152,22 @@ public class GlobalExceptionHandler {
             HttpServletRequest r
     ) {
         log.error("Error inesperado en {}", r.getRequestURI(), ex);
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "OcurriÃƒÂ³ un error inesperado", r, null);
+
+        return error(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Ocurrio un error inesperado",
+                r, null
+        );
     }
 
-    private ResponseEntity<ErrorResponseDTO> error(HttpStatus status, String mensaje, HttpServletRequest r, Map<String, String> campos) {
-        return ResponseEntity.status(status).body(new ErrorResponseDTO(LocalDateTime.now(), status.value(), status.getReasonPhrase(), mensaje, r.getRequestURI(), campos));
+    // ERROR UTILITY
+    private ResponseEntity<ErrorResponseDTO> error(
+            HttpStatus status, String mensaje, HttpServletRequest r, Map<String, String> campos
+    ) {
+        return ResponseEntity.status(status).body(new ErrorResponseDTO(
+                LocalDateTime.now(),
+                status.value(), status.getReasonPhrase(), mensaje,
+                r.getRequestURI(), campos
+        ));
     }
 }

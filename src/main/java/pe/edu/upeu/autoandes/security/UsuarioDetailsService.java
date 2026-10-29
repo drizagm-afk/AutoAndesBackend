@@ -5,12 +5,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.userdetails.*;
 import pe.edu.upeu.autoandes.repository.UsuarioRepository;
-@Service @RequiredArgsConstructor
+
+@Service
+@RequiredArgsConstructor
 public class UsuarioDetailsService implements UserDetailsService {
     private final UsuarioRepository usuarios;
-    @Override @Transactional(readOnly=true)
+
+    @Override
+    @Transactional(readOnly = true)
     public UsuarioPrincipal loadUserByUsername(String username) {
-        return usuarios.findByUsername(username).map(UsuarioPrincipal::from)
-            .orElseThrow(() -> new UsernameNotFoundException("Credenciales inválidas"));
+        return usuarios
+                .findByUsername(username)
+                .map(UsuarioPrincipal::from)
+                .orElseThrow(() -> new UsernameNotFoundException("Credenciales inválidas"));
     }
 }

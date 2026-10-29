@@ -30,7 +30,6 @@ class OrdenIntegrationTest extends SecurityTestSupport {
     @Autowired OrdenServicioRepository ordenes;
     @Autowired DetalleOrdenRepository detalles;
     @Autowired JdbcTemplate jdbc;
-    @Autowired Clock clock;
     @Value("${local.server.port}") int port;
     static final AtomicInteger ids=new AtomicInteger(920);
 
@@ -75,7 +74,7 @@ class OrdenIntegrationTest extends SecurityTestSupport {
     }
     @Test void mileageUsesLatestRegisteredOrderAndAllowsEqualValue() {
         var v=vehiculo(); var s=servicio(true,"10.00");
-        var now=LocalDateTime.now(clock);
+        var now=LocalDateTime.now();
         previa(v,45000,"REGISTRADA",now.minusDays(2),s,1);
         previa(v,90000,"ANULADA",now.minusDays(1),s,1);
         var ex=assertThrows(ReglaNegocioException.class,() -> service.registrar(request(v,44999,s),"asesor"));
@@ -91,7 +90,7 @@ class OrdenIntegrationTest extends SecurityTestSupport {
         assertEquals("ANULADA",canceled.estado()); assertNotNull(canceled.motivoAnulacion());
         assertEquals(1,canceled.detalles().size());
         assertThrows(ReglaNegocioException.class,() -> service.anular(o.id(),new AnularOrdenRequestDTO("Intento de anular nuevamente")));
-        var old=previa(v,5,"REGISTRADA",LocalDateTime.now(clock).minusDays(1),s,1);
+        var old=previa(v,5,"REGISTRADA",LocalDateTime.now().minusDays(1),s,1);
         assertThrows(ReglaNegocioException.class,() -> service.anular(old.getId(),new AnularOrdenRequestDTO("Anulación fuera de plazo")));
     }
     @Test void dateFiltersAndJpqlReportExcludeCanceledOrders() {
