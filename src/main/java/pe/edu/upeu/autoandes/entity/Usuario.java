@@ -3,6 +3,7 @@ package pe.edu.upeu.autoandes.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,7 +31,8 @@ public class Usuario {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "usuario_roles",
-        joinColumns = @JoinColumn(name = "usuarioid"),
-        inverseJoinColumns = @JoinColumn(name = "rolid"))
+            joinColumns = @JoinColumn(name = "usuarioid"),
+            inverseJoinColumns = @JoinColumn(name = "rolid")
+    )
     private Set<Rol> roles = new HashSet<>();
 }

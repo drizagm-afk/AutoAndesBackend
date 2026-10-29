@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-class CrudIntegrationTest {
+class CrudIntegrationTest extends SecurityTestSupport {
     @Value("${local.server.port}") int port;
     @Autowired ClienteRepository clientes;
     @Autowired VehiculoRepository vehiculos;
@@ -26,6 +26,7 @@ class CrudIntegrationTest {
 
     private HttpResponse<String> request(String method, String path, String body) throws Exception {
         var builder = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1" + path));
+        builder.header("Authorization", "Bearer " + token("admin"));
         if (body != null) builder.header("Content-Type", "application/json");
         return client.send(builder.method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }

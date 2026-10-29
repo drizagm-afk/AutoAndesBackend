@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-class OrdenIntegrationTest {
+class OrdenIntegrationTest extends SecurityTestSupport {
     @Autowired OrdenService service;
     @Autowired ReporteService reporte;
     @Autowired ClienteRepository clientes;
@@ -116,6 +116,7 @@ class OrdenIntegrationTest {
     }
     private HttpResponse<String> http(String method,String path,String body) throws Exception {
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/v1"+path));
+        b.header("Authorization","Bearer "+token("admin"));
         if(body!=null)b.header("Content-Type","application/json");
         return HttpClient.newHttpClient().send(b.method(method,body==null?HttpRequest.BodyPublishers.noBody():HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofString());
     }

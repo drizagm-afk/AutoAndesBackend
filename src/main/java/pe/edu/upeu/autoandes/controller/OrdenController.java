@@ -24,8 +24,8 @@ public class OrdenController {
     public ResponseEntity<OrdenResponseDTO> registrar(
             @Valid @RequestBody OrdenRequestDTO r, Principal principal
     ) {
-        // Question 2 permits anonymous evaluation; Question 3 requires a verified JWT principal.
-        var response = service.registrar(r, principal == null ? "asesor" : principal.getName());
+        // Spring Security only permits registration with a verified JWT principal.
+        var response = service.registrar(r, principal.getName());
         return ResponseEntity.created(URI.create("/api/v1/ordenes/" + response.id())).body(response);
     }
 

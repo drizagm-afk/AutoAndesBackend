@@ -15,6 +15,7 @@ import java.util.List;
 public class ReporteController {
     private final ReporteService service;
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('REPORTE_VER')")
     @GetMapping("/ingresos-por-servicio")
     public List<IngresoPorServicioDTO> ingresos(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,

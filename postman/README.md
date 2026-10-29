@@ -1,16 +1,20 @@
-# Postman evaluation: Questions 1 and 2
+# Postman evaluation: Questions 1, 2 and 3
 
 1. Start the backend on port 8080.
 2. Import `AutoAndes.postman_collection.json` and `AutoAndes-Local.postman_environment.json`.
 3. Select the **AutoAndes Local** environment.
 4. Open the collection Runner and run the whole collection once, in its saved order:
-   **02 - Clientes**, **03 - Servicios**, **04 - Vehiculos**, **05 - Ordenes**, **06 - Reportes**.
-5. The full collection has **57 requests**; every assertion should pass.
+   **01 - Auth**, **02 - Clientes**, **03 - Servicios**, **04 - Vehiculos**,
+   **05 - Ordenes**, **06 - Reportes**, **07 - Errores y permisos**.
+5. Expected: **84 requests, 205 assertions, zero failures**.
 
-Auth and security folders are placeholders for Question 3.
-No login is required yet. Token values are blank until Question 3.
+Login requests populate adminToken, asesorToken, jefeToken and the default token.
+Start with Auth on every run, especially after restarting the API. CRUD uses admin,
+order creation uses asesor and cancellation uses jefe. Security requests explicitly
+override auth to send a restricted token, an altered token or no token.
+The exported environment intentionally contains no saved tokens.
 
-The first request generates a random service code and plate suffix. Tests save real
+The first customer request generates a random service code and plate suffix. Tests save real
 IDs into the selected environment. Always run from the first request: later requests
 may otherwise use deleted or unset IDs. Successful runs delete their own temporary
 service and vehicle without modifying seed rows. Order evaluation intentionally
@@ -32,8 +36,7 @@ the test records before rerunning; do not delete seed records.
 
 Use request History or saved examples for successful create/edit responses after
 Runner finishes: temporary records are deleted at the end. For final delivery,
-export the current collection and environment with tokens cleared. Later phases
-add login, 401 and 403 checks.
+export the current collection and environment with all token values cleared.
 
 Order checks include third-line inactive-service rollback, mileage 44999 vs the
 45000 seed value, duplicate services, detail/quantity validation, missing references,
@@ -43,3 +46,10 @@ that stored amounts come from the backend. SQL rollback evidence queries are in
 `../docs/phase2-oracle-verification.sql`.
 
 Manual screenshots will be requested only when assembling final exam evidence.
+
+Security checks cover all three active logins, login validation and identical 401
+messages for bad credentials/inactive accounts, /auth/me, missing and altered tokens,
+every forbidden advisor/manager mutation, the advisor's rejected report, and permitted
+access after 403. Signed-expired-token rejection is also verified independently
+against the running Oracle API and by the integration suite, without exporting a
+signing key into Postman files. The collection never needs the JWT secret.

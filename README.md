@@ -13,15 +13,15 @@ $env:DB_PASSWORD = '<local Oracle password>'
 Defaults: `localhost:1522/FREEPDB1`, user `autoandesdb`, HTTP port `8080`.
 Optional overrides: `DB_URL`, `DB_USERNAME`. Never commit local credentials.
 
-## Current status: Questions 1 and 2
+## Current status: Questions 1, 2 and 3
 
 Services/vehicles CRUD and read-only customer lookup are implemented with DTOs,
 validation, common errors, mutation/rejection logs and RN-01/RN-02 in the service layer.
 Controllers never call repositories. Vehicle responses include `clienteId` and
 `clienteNombre`, not a nested entity. The customer relationship is lazy.
 
-Current business routes are public for Question 1/2 evaluation. JWT and permission
-enforcement are added in Question 3; this is not the final security configuration.
+All business routes now require a signed, unexpired Bearer token and the required
+permission. Only POST login, Swagger/OpenAPI and OPTIONS are public.
 
 Swagger UI: <http://localhost:8080/swagger-ui.html>
 OpenAPI: <http://localhost:8080/v3/api-docs>
@@ -34,9 +34,8 @@ inspected and empty before an explicit one-time baseline at version 1; V2 was th
 applied. Fresh empty schemas run both migrations automatically.
 
 V3 supplies the user/role tables omitted by the annex, using the fields from
-section 3.1. Their JPA entities are included; account seeds and authentication
-remain scheduled for Question 3. Fresh schemas apply V1, V2 and V3.
-V4 adds the order-number sequence; a fresh schema applies all four migrations.
+section 3.1. V4 adds the order-number sequence. V5 seeds roles and BCrypt-protected
+accounts. A fresh empty schema applies all five migrations.
 
 `baseline-on-migrate` stays false. Do not baseline an unknown schema or edit applied
 migrations. Hibernate DDL changes are disabled. Future changes use new migrations.
@@ -81,7 +80,7 @@ unused services can be physically deleted. All errors share timestamp/status/err
 mensaje/ruta. Only validation errors include `campos`. Unexpected errors return a
 generic 500 and are logged on the server.
 
-Required application users are seeded with BCrypt in Question 3: admin, asesor,
+Required application users are seeded with BCrypt: admin, asesor,
 jefe, inactivo; test password `Auto2026*`, separate from Oracle credentials.
 
 ## Orders and reports (Question 2)
@@ -129,8 +128,57 @@ order filters, and omitted date limits are unbounded.
 
 CORS allows only http://localhost:4200 for the API, methods GET/POST/PUT/PATCH/DELETE/
 OPTIONS and Authorization/Content-Type/Accept headers. Location is exposed.
-During Question 2, usuarioRegistro defaults to asesor for anonymous evaluation;
-Question 3 replaces that fallback with the verified JWT principal.
+usuarioRegistro comes exclusively from the verified JWT principal; the anonymous
+evaluation fallback has been removed.
+
+## Authentication and permissions (Question 3)
+
+POST `/api/v1/auth/login` body:
+
+```json
+{"username":"asesor","password":"Auto2026*"}
+```
+
+Returns token, tipo (Bearer), expiraEnSegundos (3600), nombreCompleto, roles and
+permisos. Send `Authorization: Bearer <token>` on protected requests.
+GET `/api/v1/auth/me` returns id, username, nombreCompleto, roles and permisos.
+Neither response exposes a password or hash. Invalid login fields return 400;
+unknown user, wrong password and inactive account share the same 401 message.
+
+| User | Password | Role | Active |
+| --- | --- | --- | --- |
+| admin | Auto2026* | ADMIN | Yes |
+| asesor | Auto2026* | ASESOR | Yes |
+| jefe | Auto2026* | JEFE_TALLER | Yes |
+| inactivo | Auto2026* | ASESOR | No |
+
+| Permission | ADMIN | ASESOR | JEFE_TALLER |
+| --- | --- | --- | --- |
+| SERVICIO_LEER | Yes | Yes | Yes |
+| SERVICIO_ESCRIBIR | Yes | No | Yes |
+| VEHICULO_LEER | Yes | Yes | Yes |
+| VEHICULO_ESCRIBIR | Yes | Yes | No |
+| ORDEN_LEER | Yes | Yes | Yes |
+| ORDEN_REGISTRAR | Yes | Yes | No |
+| ORDEN_ANULAR | Yes | No | Yes |
+| REPORTE_VER | Yes | No | Yes |
+
+Permissions are centralized in PermisosPorRol. Multiple roles receive their union.
+SecurityConfig uses hasAuthority; the report also uses @PreAuthorize. Controllers
+never compare role names. The filter validates signature, issuer and expiration,
+then reloads the active account and current permissions from Oracle. JWT claims
+include subject, issuer, issued-at, expiration, roles and permissions; claims are
+signed, not encrypted. No HTTP session is created.
+
+Missing, malformed, altered, expired or inactive-user tokens return common-format
+401. An authenticated user missing a permission receives common-format 403; the
+token remains valid for permitted operations.
+
+Set optional `JWT_SECRET` to a Base64-encoded random key of at least 32 bytes to
+retain token validity across restarts. No signing secret is committed. Without
+this variable, a secure random development key is generated for each process;
+restarting the API invalidates previous tokens. Re-login after restarting.
+Swagger's Authorize button accepts the token without the Bearer prefix.
 
 ## Verification
 
@@ -139,5 +187,6 @@ never the Oracle schema. They cover lifecycle operations, duplicate updates,
 validation/error shapes, customer mapping/filtering and referenced deletion rules.
 
 The Postman collection is also executed with Newman against Oracle. See
-`docs/phase1-validation.md`, `docs/phase2-validation.md` and `postman/README.md`.
+`docs/phase1-validation.md`, `docs/phase2-validation.md`, `docs/phase3-validation.md`
+and `postman/README.md`.
 SQL Developer evidence queries are in `docs/phase2-oracle-verification.sql`.
