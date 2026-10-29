@@ -2,7 +2,7 @@
   "info": {
     "name": "AutoAndes API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Phase 0 foundation. Requests and assertions are added with each backend question. No business endpoint is implemented yet."
+    "description": "Question 1: Oracle-backed service and vehicle CRUD, validation, relationship and conflict checks. Run folders 02, 03, 04 in order. Authentication is added in Question 3."
   },
   "item": [
     {
@@ -11,15 +11,810 @@
     },
     {
       "name": "02 - Clientes",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Clientes semilla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/clientes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Al menos 6 clientes\", () => pm.expect(rows.length).to.be.at.least(6));",
+                  "pm.environment.set(\"clienteId\", rows[0].id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "03 - Servicios",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Servicios semilla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Semilla mínima\", () => pm.expect(rows.length).to.be.at.least(8));",
+                  "pm.environment.set(\"servicioUsadoId\", rows.find(s => s.codigo === \"SRV-001\").id);",
+                  "pm.environment.set(\"servicioInactivoId\", rows.find(s => s.codigo === \"SRV-008\").id);",
+                  "pm.test(\"SRV-008 inactivo\", () => pm.expect(rows.find(s => s.codigo === \"SRV-008\").activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Crear servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{runCode}}\",\n  \"nombre\": \"Servicio Postman\",\n  \"precio\": 95.5,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"servicioId\", pm.response.json().id);",
+                  "pm.test(\"Location y activo\", () => { pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/servicios/\"); pm.expect(pm.response.json().activo).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Código repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{runCode}}\",\n  \"nombre\": \"Servicio Postman\",\n  \"precio\": 95.5,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Validaciones",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"bad\",\n  \"nombre\": \"X\",\n  \"precio\": 0,\n  \"duracionMin\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Campos inválidos identificados\", () => [\"codigo\",\"nombre\",\"precio\",\"duracionMin\"].forEach(k => pm.expect(pm.response.json().campos).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Editar servicio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{runCode}}\",\n  \"nombre\": \"Servicio Postman editado\",\n  \"precio\": 110,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Código duplicado al editar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"SRV-001\",\n  \"nombre\": \"Servicio Postman\",\n  \"precio\": 95.5,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Baja lógica",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Inactivo\", () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Reactivar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Estado obligatorio",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Servicio usado no se elimina",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioUsadoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Recurso inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Eliminar servicio de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Confirmar eliminación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "04 - Vehiculos",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Vehículos semilla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Semilla mínima\", () => pm.expect(rows.length).to.be.at.least(8));",
+                  "pm.environment.set(\"vehiculoConOrdenId\", rows.find(v => v.placa === \"AAA-111\").id);",
+                  "pm.test(\"Cliente plano\", () => { rows.forEach(v => { pm.expect(v.clienteNombre).to.be.a(\"string\"); pm.expect(v).not.to.have.property(\"cliente\"); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Crear vehículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"{{runPlate}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"vehiculoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar vehículo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Placa repetida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"{{runPlate}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Editar vehículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"{{runPlate}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla\",\n  \"anio\": 2022,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Placa repetida al editar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"AAA-111\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Filtro por cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos?clienteId={{clienteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo cliente solicitado\", () => pm.response.json().forEach(v => pm.expect(v.clienteId).to.eql(Number(pm.environment.get(\"clienteId\")))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos?clienteId=999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\", () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Validaciones",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"bad\",\n  \"marca\": \"\",\n  \"modelo\": \"\",\n  \"anio\": 1980,\n  \"clienteId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Campos inválidos identificados\", () => [\"placa\",\"marca\",\"modelo\",\"anio\",\"clienteId\"].forEach(k => pm.expect(pm.response.json().campos).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Cliente inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ZZZ-999\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": 999999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Vehículo con órdenes no se elimina",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoConOrdenId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Recurso inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Eliminar vehículo de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Confirmar eliminación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "05 - Ordenes",
@@ -43,5 +838,20 @@
         "type": "string"
       }
     ]
-  }
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === \"01 - Clientes semilla\") {",
+          "  const n = Math.floor(Math.random() * 900) + 100;",
+          "  pm.environment.set(\"runCode\", `SRV-${n}`);",
+          "  pm.environment.set(\"runPlate\", `PST-${n}`);",
+          "}"
+        ]
+      }
+    }
+  ]
 }
