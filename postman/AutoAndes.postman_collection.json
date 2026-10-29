@@ -2,36 +2,2684 @@
   "info": {
     "name": "AutoAndes API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Phase 0 foundation. Requests and assertions are added with each backend question. No business endpoint is implemented yet."
+    "description": "AutoAndes Questions 1–3. Run all folders in order. Logins save role tokens; CRUD uses admin, order registration asesor, cancellation jefe. Successful runs retain one canceled order for audit. Token values in the exported environment are intentionally blank."
   },
   "item": [
     {
       "name": "01 - Auth",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Login admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"admin\", \"password\": \"Auto2026*\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();pm.environment.set(\"adminToken\",b.token);",
+                  "pm.test(\"Rol y permisos exactos\",()=>{pm.expect(b.roles).to.eql([\"ADMIN\"]);pm.expect(b.permisos.slice().sort()).to.eql([\"ORDEN_ANULAR\", \"ORDEN_LEER\", \"ORDEN_REGISTRAR\", \"REPORTE_VER\", \"SERVICIO_ESCRIBIR\", \"SERVICIO_LEER\", \"VEHICULO_ESCRIBIR\", \"VEHICULO_LEER\"]);});",
+                  "pm.test(\"Contrato login sin contraseña\",()=>{pm.expect(b.tipo).to.eql(\"Bearer\");pm.expect(b.expiraEnSegundos).to.eql(3600);pm.expect(b.nombreCompleto).to.be.a(\"string\");pm.expect(b).not.to.have.property(\"password\");});",
+                  "pm.environment.set(\"token\",b.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Login asesor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"asesor\", \"password\": \"Auto2026*\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();pm.environment.set(\"asesorToken\",b.token);",
+                  "pm.test(\"Rol y permisos exactos\",()=>{pm.expect(b.roles).to.eql([\"ASESOR\"]);pm.expect(b.permisos.slice().sort()).to.eql([\"ORDEN_LEER\", \"ORDEN_REGISTRAR\", \"SERVICIO_LEER\", \"VEHICULO_ESCRIBIR\", \"VEHICULO_LEER\"]);});",
+                  "pm.test(\"Contrato login sin contraseña\",()=>{pm.expect(b.tipo).to.eql(\"Bearer\");pm.expect(b.expiraEnSegundos).to.eql(3600);pm.expect(b.nombreCompleto).to.be.a(\"string\");pm.expect(b).not.to.have.property(\"password\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Login jefe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"jefe\", \"password\": \"Auto2026*\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();pm.environment.set(\"jefeToken\",b.token);",
+                  "pm.test(\"Rol y permisos exactos\",()=>{pm.expect(b.roles).to.eql([\"JEFE_TALLER\"]);pm.expect(b.permisos.slice().sort()).to.eql([\"ORDEN_ANULAR\", \"ORDEN_LEER\", \"REPORTE_VER\", \"SERVICIO_ESCRIBIR\", \"SERVICIO_LEER\", \"VEHICULO_LEER\"]);});",
+                  "pm.test(\"Contrato login sin contraseña\",()=>{pm.expect(b.tipo).to.eql(\"Bearer\");pm.expect(b.expiraEnSegundos).to.eql(3600);pm.expect(b.nombreCompleto).to.be.a(\"string\");pm.expect(b).not.to.have.property(\"password\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Usuario actual",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Admin actual sin contraseña\",()=>{const b=pm.response.json();pm.expect(b.username).to.eql(\"admin\");pm.expect(b).not.to.have.property(\"password\");pm.expect(b.permisos.length).to.eql(8);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"admin\", \"password\": \"wrong\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));",
+                  "pm.test(\"Mismo mensaje de credenciales\",()=>pm.expect(pm.response.json().mensaje).to.eql(\"Usuario o contraseña incorrectos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Usuario inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"no-existe\", \"password\": \"Auto2026*\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));",
+                  "pm.test(\"Mismo mensaje de credenciales\",()=>pm.expect(pm.response.json().mensaje).to.eql(\"Usuario o contraseña incorrectos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Cuenta inactiva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"inactivo\", \"password\": \"Auto2026*\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));",
+                  "pm.test(\"Mismo mensaje de credenciales\",()=>pm.expect(pm.response.json().mensaje).to.eql(\"Usuario o contraseña incorrectos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Validación de login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"\", \"password\": \"\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\",()=>pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Campos requeridos\",()=>{pm.expect(pm.response.json().campos).to.have.property(\"username\");pm.expect(pm.response.json().campos).to.have.property(\"password\");});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "02 - Clientes",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Clientes semilla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/clientes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Al menos 6 clientes\", () => pm.expect(rows.length).to.be.at.least(6));",
+                  "pm.environment.set(\"clienteId\", rows[0].id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "03 - Servicios",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Servicios semilla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Semilla mínima\", () => pm.expect(rows.length).to.be.at.least(8));",
+                  "pm.environment.set(\"servicioUsadoId\", rows.find(s => s.codigo === \"SRV-001\").id);",
+                  "pm.environment.set(\"servicioInactivoId\", rows.find(s => s.codigo === \"SRV-008\").id);",
+                  "pm.test(\"SRV-008 inactivo\", () => pm.expect(rows.find(s => s.codigo === \"SRV-008\").activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Crear servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{runCode}}\",\n  \"nombre\": \"Servicio Postman\",\n  \"precio\": 95.5,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"servicioId\", pm.response.json().id);",
+                  "pm.test(\"Location y activo\", () => { pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/servicios/\"); pm.expect(pm.response.json().activo).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Código repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{runCode}}\",\n  \"nombre\": \"Servicio Postman\",\n  \"precio\": 95.5,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Validaciones",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"bad\",\n  \"nombre\": \"X\",\n  \"precio\": 0,\n  \"duracionMin\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Campos inválidos identificados\", () => [\"codigo\",\"nombre\",\"precio\",\"duracionMin\"].forEach(k => pm.expect(pm.response.json().campos).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Editar servicio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{runCode}}\",\n  \"nombre\": \"Servicio Postman editado\",\n  \"precio\": 110,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Código duplicado al editar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"SRV-001\",\n  \"nombre\": \"Servicio Postman\",\n  \"precio\": 95.5,\n  \"duracionMin\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Baja lógica",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Inactivo\", () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Reactivar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Estado obligatorio",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Servicio usado no se elimina",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioUsadoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Recurso inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Eliminar servicio de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Confirmar eliminación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "04 - Vehiculos",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Vehículos semilla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Semilla mínima\", () => pm.expect(rows.length).to.be.at.least(8));",
+                  "pm.environment.set(\"vehiculoConOrdenId\", rows.find(v => v.placa === \"AAA-111\").id);",
+                  "pm.test(\"Cliente plano\", () => { rows.forEach(v => { pm.expect(v.clienteNombre).to.be.a(\"string\"); pm.expect(v).not.to.have.property(\"cliente\"); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Crear vehículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"{{runPlate}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"vehiculoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar vehículo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Placa repetida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"{{runPlate}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Editar vehículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"{{runPlate}}\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla\",\n  \"anio\": 2022,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Placa repetida al editar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"AAA-111\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": \"{{clienteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Filtro por cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos?clienteId={{clienteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo cliente solicitado\", () => pm.response.json().forEach(v => pm.expect(v.clienteId).to.eql(Number(pm.environment.get(\"clienteId\")))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos?clienteId=999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\", () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Validaciones",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"bad\",\n  \"marca\": \"\",\n  \"modelo\": \"\",\n  \"anio\": 1980,\n  \"clienteId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Campos inválidos identificados\", () => [\"placa\",\"marca\",\"modelo\",\"anio\",\"clienteId\"].forEach(k => pm.expect(pm.response.json().campos).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Cliente inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ZZZ-999\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Yaris\",\n  \"anio\": 2020,\n  \"clienteId\": 999999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Vehículo con órdenes no se elimina",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoConOrdenId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Recurso inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Eliminar vehículo de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Confirmar eliminación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato común de error\", () => { const e = pm.response.json(); [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(e).to.have.property(k)); pm.expect(e.status).to.eql(pm.response.code); });",
+                  "pm.test(\"Sin campos fuera de validación\", () => pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "05 - Ordenes",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Preparar servicios de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.environment.set(\"servicioAceiteId\",rows.find(s=>s.codigo===\"SRV-001\").id);",
+                  "pm.environment.set(\"servicioAlineamientoId\",rows.find(s=>s.codigo===\"SRV-002\").id);",
+                  "pm.environment.set(\"servicioInactivoId\",rows.find(s=>s.codigo===\"SRV-008\").id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Preparar vehículos de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.environment.set(\"vehiculoOrdenId\",rows.find(v=>v.placa===\"HHH-888\").id);",
+                  "pm.environment.set(\"vehiculoKilometrajeId\",rows.find(v=>v.placa===\"AAA-111\").id);",
+                  "pm.environment.set(\"hoy\",new Date(Date.now()-5*60*60*1000).toISOString().substring(0,10));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Consultar semilla y guardar conteo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json(); pm.environment.set(\"ordenCount\",rows.length);",
+                  "pm.environment.set(\"detallesCount\",rows.reduce((n,o)=>n+o.detalles.length,0));",
+                  "pm.environment.set(\"ordenAntiguaId\",rows.find(o=>o.numero===\"OS-000001\").id);",
+                  "pm.environment.set(\"ordenAnuladaId\",rows.find(o=>o.numero===\"OS-000004\").id);",
+                  "pm.test(\"Semilla y orden por fecha\",()=>{pm.expect(rows.length).to.be.at.least(4);for(let i=1;i<rows.length;i++)pm.expect(rows[i-1].fecha>=rows[i].fecha).to.eql(true);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Rechazar tercer detalle inactivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioInactivoId}}\",\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Confirmar rollback por API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.test(\"Sin cabecera parcial\",()=>pm.expect(rows.length).to.eql(Number(pm.environment.get(\"ordenCount\"))));",
+                  "pm.test(\"Sin detalles parciales\",()=>pm.expect(rows.reduce((n,o)=>n+o.detalles.length,0)).to.eql(Number(pm.environment.get(\"detallesCount\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Rechazar kilometraje inferior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoKilometrajeId}}\",\n  \"kilometraje\": 44999,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test(\"Mensaje con último kilometraje\",()=>pm.expect(pm.response.json().mensaje).to.include(\"45000\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Rechazar servicio repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Rechazar orden sin detalles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test(\"Error de campo\",()=>pm.expect(pm.response.json().campos).to.have.property(\"detalles\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Rechazar cantidad mayor que cinco",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 6\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test(\"Error en línea de detalle\",()=>pm.expect(pm.response.json().campos).to.have.property(\"detalles[0].cantidad\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Rechazar vehículo inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": 999999999,\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Rechazar servicio inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": 999999999,\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Registrar orden con cálculos del backend",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehiculoId\": \"{{vehiculoOrdenId}}\",\n  \"kilometraje\": 50000,\n  \"detalles\": [\n    {\n      \"servicioId\": \"{{servicioAceiteId}}\",\n      \"cantidad\": 2\n    },\n    {\n      \"servicioId\": \"{{servicioAlineamientoId}}\",\n      \"cantidad\": 2\n    }\n  ],\n  \"total\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const o=pm.response.json();pm.environment.set(\"ordenId\",o.id);pm.environment.set(\"ordenNumero\",o.numero);",
+                  "pm.test(\"Orden completa y precios reales\",()=>{pm.expect(o.estado).to.eql(\"REGISTRADA\");pm.expect(o.numero).to.match(/^OS-\\d{6}$/);pm.expect(o.total).to.eql(280);pm.expect(o.detalles.length).to.eql(2);pm.expect(o.detalles[0].precioUnitario).to.eql(80);pm.expect(o.detalles[0].subtotal).to.eql(160);});",
+                  "pm.test(\"Location\",()=>pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/ordenes/\"+o.id));",
+                  "pm.test(\"Usuario registrado proviene del JWT\",()=>pm.expect(pm.response.json().usuarioRegistro).to.eql(\"asesor\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Consultar detalle de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Detalle persistido\",()=>{const o=pm.response.json();pm.expect(o.total).to.eql(280);pm.expect(o.detalles.length).to.eql(2);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 - Combinar placa estado y fechas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?placa=hhh&estado=REGISTRADA&desde={{hoy}}&hasta={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Filtros combinados\",()=>{const rows=pm.response.json();pm.expect(rows.some(o=>o.id===Number(pm.environment.get(\"ordenId\")))).to.eql(true);rows.forEach(o=>{pm.expect(o.placa).to.eql(\"HHH-888\");pm.expect(o.estado).to.eql(\"REGISTRADA\");pm.expect(o.fecha.substring(0,10)).to.eql(pm.environment.get(\"hoy\"));});});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 - Consulta sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?placa=NO-MATCH"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\",()=>pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 - Orden inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 - Rechazar motivo corto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Corto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 - Rechazar anulación fuera del día",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenAntiguaId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Anulación solicitada fuera de plazo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 - Rechazar anulación de orden anulada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenAnuladaId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Intento de anulación repetida\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 - Reporte previo a anular",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde={{hoy}}&hasta={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"reporteAntes\",JSON.stringify(pm.response.json()));",
+                  "pm.test(\"Orden incluida en reporte\",()=>{const rows=pm.response.json();pm.expect(rows.find(r=>r.codigo===\"SRV-001\").importeTotal).to.be.at.least(160);pm.expect(rows.find(r=>r.codigo===\"SRV-002\").importeTotal).to.be.at.least(120);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21 - Anular orden del día",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cancelación solicitada por el cliente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Anulada con detalle conservado\",()=>{const o=pm.response.json();pm.expect(o.estado).to.eql(\"ANULADA\");pm.expect(o.detalles.length).to.eql(2);pm.expect(o.motivoAnulacion).to.eql(\"Cancelación solicitada por el cliente\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 - Reporte excluye lo anulado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde={{hoy}}&hasta={{hoy}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const before=JSON.parse(pm.environment.get(\"reporteAntes\"));const after=pm.response.json();",
+                  "pm.test(\"Ingresos descontados\",()=>{[ [\"SRV-001\",160,2],[\"SRV-002\",120,2] ].forEach(([code,amount,qty])=>{const b=before.find(r=>r.codigo===code);const a=after.find(r=>r.codigo===code);pm.expect(b.importeTotal-(a?a.importeTotal:0)).to.eql(amount);pm.expect(b.cantidadTotal-(a?a.cantidadTotal:0)).to.eql(qty);});});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 - No se anula dos veces",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Segundo intento de cancelación\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 - Rango de fechas inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?desde=2026-12-31&hasta=2026-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25 - Estado inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes?estado=INVALIDO"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "06 - Reportes",
-      "item": []
+      "item": [
+        {
+          "name": "01 - Reporte agregado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const rows=pm.response.json();",
+                  "pm.test(\"Proyección y orden descendente\",()=>{rows.forEach(r=>[\"codigo\",\"servicio\",\"cantidadTotal\",\"importeTotal\"].forEach(k=>pm.expect(r).to.have.property(k)));for(let i=1;i<rows.length;i++)pm.expect(rows[i-1].importeTotal).to.be.at.least(rows[i].importeTotal);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Reporte sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde=1990-01-01&hasta=1990-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista vacía\",()=>pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Rango inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio?desde=2026-12-31&hasta=2026-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error común\", () => [\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "07 - Errores y permisos",
-      "item": []
+      "item": [
+        {
+          "name": "Sin token - clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/clientes",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin token - servicios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/servicios",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin token - vehículos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin token - órdenes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ordenes",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin token - reporte",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin token - me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token alterado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{alteredToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const parts=pm.environment.get(\"adminToken\").split(\".\");",
+                  "parts[1]=(parts[1][0]===\"A\"?\"B\":\"A\")+parts[1].substring(1);",
+                  "pm.environment.set(\"alteredToken\",parts.join(\".\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\",()=>pm.response.to.have.status(401));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor no anula",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes/{{ordenId}}/anular",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"motivo\": \"Anulación solicitada por asesor\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor no ve reporte",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor no crea servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor no edita servicio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioUsadoId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor no elimina servicio",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/servicios/{{servicioUsadoId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor no cambia estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/servicios/{{servicioUsadoId}}/estado",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"activo\": false}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jefe no registra orden",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ordenes",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jefe no crea vehículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jefe no edita vehículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoConOrdenId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jefe no elimina vehículo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/vehiculos/{{vehiculoConOrdenId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\",()=>pm.response.to.have.status(403));",
+                  "pm.test(\"Formato común\",()=>{const e=pm.response.json();[\"timestamp\",\"status\",\"error\",\"mensaje\",\"ruta\"].forEach(k=>pm.expect(e).to.have.property(k));pm.expect(e.status).to.eql(pm.response.code);});",
+                  "pm.test(\"Sin campos\",()=>pm.expect(pm.response.json()).not.to.have.property(\"campos\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asesor conserva acceso tras 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{asesorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Usuario asesor\",()=>pm.expect(pm.response.json().username).to.eql(\"asesor\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jefe puede ver reporte",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/reportes/ingresos-por-servicio",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jefeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\",()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "auth": {
@@ -43,5 +2691,20 @@
         "type": "string"
       }
     ]
-  }
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === \"01 - Clientes semilla\") {",
+          "  const n = Math.floor(Math.random() * 900) + 100;",
+          "  pm.environment.set(\"runCode\", `SRV-${n}`);",
+          "  pm.environment.set(\"runPlate\", `PST-${n}`);",
+          "}"
+        ]
+      }
+    }
+  ]
 }
