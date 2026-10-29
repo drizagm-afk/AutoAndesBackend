@@ -1,0 +1,47 @@
+{
+  "info": {
+    "name": "AutoAndes API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Phase 0 foundation. Requests and assertions are added with each backend question. No business endpoint is implemented yet."
+  },
+  "item": [
+    {
+      "name": "01 - Auth",
+      "item": []
+    },
+    {
+      "name": "02 - Clientes",
+      "item": []
+    },
+    {
+      "name": "03 - Servicios",
+      "item": []
+    },
+    {
+      "name": "04 - Vehiculos",
+      "item": []
+    },
+    {
+      "name": "05 - Ordenes",
+      "item": []
+    },
+    {
+      "name": "06 - Reportes",
+      "item": []
+    },
+    {
+      "name": "07 - Errores y permisos",
+      "item": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
